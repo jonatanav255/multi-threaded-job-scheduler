@@ -1,5 +1,7 @@
 package com.jobscheduler;
 
+import com.jobscheduler.scheduler.SimpleScheduler;
+import com.jobscheduler.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +15,19 @@ public class Main {
         logger.info("=== Multi-Threaded Job Scheduler ===");
         logger.info("Starting application...");
 
-        // TODO: Initialize scheduler and console interface
+        // Create a simple scheduler
+        SimpleScheduler scheduler = new SimpleScheduler();
 
-        logger.info("Application ready. Type 'help' for available commands.");
+        // Create a simple task using lambda
+        Task<String> task = () -> {
+            logger.info("Hello from inside the task!");
+            return "Task completed successfully!";
+        };
+
+        // Execute the task
+        String result = scheduler.execute(task);
+        logger.info("Result: {}", result);
+
+        logger.info("Application finished.");
     }
 }
