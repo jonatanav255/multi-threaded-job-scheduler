@@ -6,12 +6,11 @@ import com.jobscheduler.model.TaskStatus;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Wraps a Task with metadata needed for scheduling and execution.
- * This class is thread-safe for status updates.
+ * Wraps a Task with metadata needed for scheduling and execution. This class is
+ * thread-safe for status updates.
  *
  * @param <T> the type of result the task produces
  */

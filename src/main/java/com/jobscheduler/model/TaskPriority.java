@@ -1,20 +1,18 @@
 package com.jobscheduler.model;
 
 /**
- * Priority levels for task execution.
- * Higher priority tasks are executed before lower priority tasks when multiple tasks are waiting.
+ * Priority levels for task execution. Higher priority tasks are executed before
+ * lower priority tasks when multiple tasks are waiting.
  */
 public enum TaskPriority {
     /**
      * Low priority - execute when system resources are available
      */
     LOW(1),
-
     /**
      * Normal priority - standard execution order
      */
     MEDIUM(5),
-
     /**
      * High priority - execute as soon as possible
      */
@@ -27,8 +25,7 @@ public enum TaskPriority {
     }
 
     /**
-     * Get the numeric weight of this priority.
-     * Higher weight = higher priority.
+     * Get the numeric weight of this priority. Higher weight = higher priority.
      *
      * @return the priority weight
      */

@@ -7,8 +7,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Builder for creating TaskWrapper instances with fluent API.
- * Provides convenient way to configure task metadata.
+ * Builder for creating TaskWrapper instances with fluent API. Provides
+ * convenient way to configure task metadata.
  *
  * @param <T> the type of result the task produces
  */

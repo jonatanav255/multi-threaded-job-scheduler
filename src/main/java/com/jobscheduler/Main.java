@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
  * Main entry point for the Multi-Threaded Job Scheduler application.
  */
 public class Main {
+
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {

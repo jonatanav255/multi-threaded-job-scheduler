@@ -5,8 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The simplest possible scheduler - just runs one task.
- * We'll build on this incrementally.
+ * The simplest possible scheduler - just runs one task. We'll build on this
+ * incrementally.
  */
 public class SimpleScheduler {
 

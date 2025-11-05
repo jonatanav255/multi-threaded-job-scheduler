@@ -9,8 +9,8 @@ package com.jobscheduler.task;
 public interface Task<T> {
 
     /**
-     * Executes the task and returns a result.
-     * This method will be called by a worker thread when the task is scheduled.
+     * Executes the task and returns a result. This method will be called by a
+     * worker thread when the task is scheduled.
      *
      * @return the result of the task execution
      * @throws Exception if the task execution fails
