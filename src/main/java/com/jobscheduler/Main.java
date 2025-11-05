@@ -1,10 +1,6 @@
 package com.jobscheduler;
-
-import com.jobscheduler.model.TaskPriority;
 import com.jobscheduler.scheduler.SimpleScheduler;
 import com.jobscheduler.task.Task;
-import com.jobscheduler.task.TaskWrapper;
-import com.jobscheduler.task.TaskWrapperBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
