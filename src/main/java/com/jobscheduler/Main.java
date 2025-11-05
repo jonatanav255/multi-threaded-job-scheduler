@@ -1,6 +1,10 @@
 package com.jobscheduler;
+
+import com.jobscheduler.model.TaskPriority;
 import com.jobscheduler.scheduler.SimpleScheduler;
 import com.jobscheduler.task.Task;
+import com.jobscheduler.task.TaskWrapper;
+import com.jobscheduler.task.TaskWrapperBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,30 +19,49 @@ public class Main {
         logger.info("=== Multi-Threaded Job Scheduler ===");
         logger.info("Starting application...");
 
-        // Create a scheduler with 3 threads
-        SimpleScheduler scheduler = new SimpleScheduler(3);
+        // Create a scheduler with 2 threads
+        SimpleScheduler scheduler = new SimpleScheduler(2);
 
-        // Submit 5 tasks - watch them run concurrently!
-        logger.info("Submitting 5 tasks...");
+        // Create 3 wrapped tasks
+        TaskWrapper<String> task1 = new TaskWrapperBuilder<>(() -> {
+            Thread.sleep(1000);
+            return "Result 1";
+        }).name("Task-1").priority(TaskPriority.HIGH).build();
 
-        for (int i = 1; i <= 5; i++) {
-            final int taskNum = i;
+        TaskWrapper<String> task2 = new TaskWrapperBuilder<>(() -> {
+            Thread.sleep(1000);
+            return "Result 2";
+        }).name("Task-2").priority(TaskPriority.MEDIUM).build();
 
-            Task<String> task = () -> {
-                logger.info("Task {} starting...", taskNum);
-                Thread.sleep(2000);  // Each task takes 2 seconds
-                logger.info("Task {} finished!", taskNum);
-                return "Result from task " + taskNum;
-            };
+        Task<String> failingTask = () -> {
+            Thread.sleep(1000);
+            throw new RuntimeException("Simulated failure!");
+        };
+        TaskWrapper<String> task3 = new TaskWrapperBuilder<>(failingTask)
+                .name("Task-3-Fails")
+                .priority(TaskPriority.LOW)
+                .build();
 
-            scheduler.submit(task);
-        }
+        // Check initial status
+        logger.info("Before submit - Task 1: {}", task1);
+        logger.info("Before submit - Task 2: {}", task2);
+        logger.info("Before submit - Task 3: {}", task3);
 
-        logger.info("All 5 tasks submitted!");
-        logger.info("Main thread: Waiting for tasks to complete...");
+        // Submit tasks
+        scheduler.submitWrapper(task1);
+        scheduler.submitWrapper(task2);
+        scheduler.submitWrapper(task3);
 
-        // Give tasks time to finish
-        Thread.sleep(5000);
+        // Wait a bit and check status
+        Thread.sleep(500);
+        logger.info("After 500ms - Task 1: {}", task1);
+        logger.info("After 500ms - Task 2: {}", task2);
+
+        // Wait for completion
+        Thread.sleep(2000);
+        logger.info("Final - Task 1: {} | Result: {}", task1, task1.getResult());
+        logger.info("Final - Task 2: {} | Result: {}", task2, task2.getResult());
+        logger.info("Final - Task 3: {} | Error: {}", task3, task3.getException().getMessage());
 
         scheduler.shutdown();
         logger.info("Application finished.");

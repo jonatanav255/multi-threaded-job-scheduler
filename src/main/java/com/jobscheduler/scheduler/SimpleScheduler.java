@@ -1,6 +1,7 @@
 package com.jobscheduler.scheduler;
 
 import com.jobscheduler.task.Task;
+import com.jobscheduler.task.TaskWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,35 @@ public class SimpleScheduler {
 
         logger.info("Task submitted (not waiting for result)");
         return future;
+    }
+
+    /**
+     * Submit a TaskWrapper - tracks status automatically.
+     */
+    public <T> String submitWrapper(TaskWrapper<T> wrapper) {
+        logger.info("Submitting wrapped task: {}", wrapper);
+
+        executor.submit(() -> {
+            try {
+                // Mark as started (PENDING -> RUNNING)
+                wrapper.markStarted();
+                logger.info("Executing: {}", wrapper);
+
+                // Execute the task
+                T result = wrapper.getTask().execute();
+
+                // Mark as completed (RUNNING -> COMPLETED)
+                wrapper.markCompleted(result);
+                logger.info("Completed: {}", wrapper);
+
+            } catch (Exception e) {
+                // Mark as failed (RUNNING -> FAILED)
+                wrapper.markFailed(e);
+                logger.error("Failed: {}", wrapper, e);
+            }
+        });
+
+        return wrapper.getId();
     }
 
     /**
