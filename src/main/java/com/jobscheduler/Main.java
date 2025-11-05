@@ -1,7 +1,10 @@
 package com.jobscheduler;
 
+import com.jobscheduler.model.TaskPriority;
 import com.jobscheduler.scheduler.SimpleScheduler;
 import com.jobscheduler.task.Task;
+import com.jobscheduler.task.TaskWrapper;
+import com.jobscheduler.task.TaskWrapperBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +26,14 @@ public class Main {
             logger.info("Hello from inside the task!");
             return "Task completed successfully!";
         };
+
+        // Wrap it using the NEW separate builder
+        TaskWrapper<String> wrapper = new TaskWrapperBuilder<>(task)
+                .name("My First Task")
+                .priority(TaskPriority.HIGH)
+                .build();
+
+        logger.info("Created task wrapper: {}", wrapper);
 
         // Execute the task
         String result = scheduler.execute(task);

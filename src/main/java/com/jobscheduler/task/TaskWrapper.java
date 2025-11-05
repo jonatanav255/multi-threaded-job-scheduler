@@ -34,13 +34,14 @@ public class TaskWrapper<T> {
     private Exception exception;
     private int retryCount;
 
-    private TaskWrapper(Builder<T> builder) {
-        this.id = builder.id;
-        this.name = builder.name;
-        this.task = builder.task;
-        this.priority = builder.priority;
+    // Package-private constructor for builder
+    TaskWrapper(Task<T> task, String id, String name, TaskPriority priority, Set<String> dependencies) {
+        this.task = task;
+        this.id = id;
+        this.name = name;
+        this.priority = priority;
         this.creationTime = Instant.now();
-        this.dependencies = new HashSet<>(builder.dependencies);
+        this.dependencies = new HashSet<>(dependencies);
         this.status = new AtomicReference<>(TaskStatus.PENDING);
         this.retryCount = 0;
     }
@@ -134,56 +135,5 @@ public class TaskWrapper<T> {
     public String toString() {
         return String.format("Task[id=%s, name=%s, priority=%s, status=%s]",
                 id, name, priority, status.get());
-    }
-
-    // Builder pattern for flexible task creation
-    public static <T> Builder<T> builder(Task<T> task) {
-        return new Builder<>(task);
-    }
-
-    public static class Builder<T> {
-        private final Task<T> task;
-        private String id;
-        private String name;
-        private TaskPriority priority = TaskPriority.MEDIUM;
-        private final Set<String> dependencies = new HashSet<>();
-
-        private Builder(Task<T> task) {
-            if (task == null) {
-                throw new IllegalArgumentException("Task cannot be null");
-            }
-            this.task = task;
-            this.id = UUID.randomUUID().toString();
-            this.name = "Task-" + this.id.substring(0, 8);
-        }
-
-        public Builder<T> id(String id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder<T> name(String name) {
-            this.name = name;
-            return this;
-        }
-
-        public Builder<T> priority(TaskPriority priority) {
-            this.priority = priority;
-            return this;
-        }
-
-        public Builder<T> dependsOn(String taskId) {
-            this.dependencies.add(taskId);
-            return this;
-        }
-
-        public Builder<T> dependsOn(Set<String> taskIds) {
-            this.dependencies.addAll(taskIds);
-            return this;
-        }
-
-        public TaskWrapper<T> build() {
-            return new TaskWrapper<>(this);
-        }
     }
 }
