@@ -15,31 +15,36 @@ public class Main {
 
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         logger.info("=== Multi-Threaded Job Scheduler ===");
         logger.info("Starting application...");
 
-        // Create a simple scheduler
-        SimpleScheduler scheduler = new SimpleScheduler();
+        // Create a scheduler with 3 threads
+        SimpleScheduler scheduler = new SimpleScheduler(3);
 
-        // Create a simple task using lambda
-        Task<String> task = () -> {
-            logger.info("Hello from inside the task!");
-            return "Task completed successfully!";
-        };
+        // Submit 5 tasks - watch them run concurrently!
+        logger.info("Submitting 5 tasks...");
 
-        // Wrap it using the NEW separate builder
-        TaskWrapper<String> wrapper = new TaskWrapperBuilder<>(task)
-                .name("My First Task")
-                .priority(TaskPriority.HIGH)
-                .build();
+        for (int i = 1; i <= 5; i++) {
+            final int taskNum = i;
 
-        logger.info("Created task wrapper: {}", wrapper);
+            Task<String> task = () -> {
+                logger.info("Task {} starting...", taskNum);
+                Thread.sleep(2000);  // Each task takes 2 seconds
+                logger.info("Task {} finished!", taskNum);
+                return "Result from task " + taskNum;
+            };
 
-        // Execute the task
-        String result = scheduler.execute(task);
-        logger.info("Result: {}", result);
+            scheduler.submit(task);
+        }
 
+        logger.info("All 5 tasks submitted!");
+        logger.info("Main thread: Waiting for tasks to complete...");
+
+        // Give tasks time to finish
+        Thread.sleep(5000);
+
+        scheduler.shutdown();
         logger.info("Application finished.");
     }
 }
