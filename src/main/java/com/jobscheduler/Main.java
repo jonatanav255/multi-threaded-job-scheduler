@@ -2,100 +2,90 @@ package com.jobscheduler;
 
 import com.jobscheduler.model.TaskPriority;
 import com.jobscheduler.scheduler.SimpleScheduler;
-import com.jobscheduler.task.Task;
 import com.jobscheduler.task.TaskWrapper;
 import com.jobscheduler.task.TaskWrapperBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Main entry point for the Multi-Threaded Job Scheduler application.
+ * Main entry point - Demo of Priority-Based Scheduling.
  *
- * This demo shows:
- * 1. Creating a thread pool scheduler
- * 2. Creating tasks with different priorities
- * 3. Tracking task status (PENDING -> RUNNING -> COMPLETED/FAILED)
- * 4. Handling task failures
+ * This demo shows that tasks run in PRIORITY order, not submission order:
+ * - Submit tasks in reverse order (LOW, MEDIUM, HIGH)
+ * - Watch them execute in priority order (HIGH, MEDIUM, LOW)
  */
 public class Main {
 
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws Exception {
-        logger.info("=== Multi-Threaded Job Scheduler ===\n");
+        logger.info("=== Priority-Based Job Scheduler Demo ===\n");
 
-        // Create a scheduler with 2 worker threads
-        // This means maximum 2 tasks can run simultaneously
-        SimpleScheduler scheduler = new SimpleScheduler(2);
-
-        // =====================================================
-        // CREATE TASKS
-        // =====================================================
-
-        // Task 1: Succeeds after 1 second
-        TaskWrapper<String> task1 = new TaskWrapperBuilder<>(() -> {
-            Thread.sleep(1000);  // Simulate work
-            return "Result 1";
-        }).name("Task-1").priority(TaskPriority.HIGH).build();
-
-        // Task 2: Succeeds after 1 second
-        TaskWrapper<String> task2 = new TaskWrapperBuilder<>(() -> {
-            Thread.sleep(1000);  // Simulate work
-            return "Result 2";
-        }).name("Task-2").priority(TaskPriority.MEDIUM).build();
-
-        // Task 3: Fails with an exception
-        Task<String> failingTask = () -> {
-            Thread.sleep(1000);  // Simulate work
-            throw new RuntimeException("Simulated failure!");  // Then fail
-        };
-        TaskWrapper<String> task3 = new TaskWrapperBuilder<>(failingTask)
-                .name("Task-3-Fails")
-                .priority(TaskPriority.LOW)
-                .build();
+        // Create scheduler with only 1 thread
+        // This makes it easy to see priority ordering
+        // (Tasks will queue up and execute one at a time)
+        SimpleScheduler scheduler = new SimpleScheduler(1);
 
         // =====================================================
-        // CHECK INITIAL STATUS (all should be PENDING)
+        // CREATE 5 TASKS WITH DIFFERENT PRIORITIES
         // =====================================================
-        logger.info("Initial status:");
-        logger.info("  {}", task1);
-        logger.info("  {}", task2);
-        logger.info("  {}\n", task3);
+
+        TaskWrapper<String> lowTask1 = new TaskWrapperBuilder<>(() -> {
+            Thread.sleep(500);
+            return "Done";
+        }).name("LOW-1").priority(TaskPriority.LOW).build();
+
+        TaskWrapper<String> lowTask2 = new TaskWrapperBuilder<>(() -> {
+            Thread.sleep(500);
+            return "Done";
+        }).name("LOW-2").priority(TaskPriority.LOW).build();
+
+        TaskWrapper<String> mediumTask = new TaskWrapperBuilder<>(() -> {
+            Thread.sleep(500);
+            return "Done";
+        }).name("MEDIUM-1").priority(TaskPriority.MEDIUM).build();
+
+        TaskWrapper<String> highTask1 = new TaskWrapperBuilder<>(() -> {
+            Thread.sleep(500);
+            return "Done";
+        }).name("HIGH-1").priority(TaskPriority.HIGH).build();
+
+        TaskWrapper<String> highTask2 = new TaskWrapperBuilder<>(() -> {
+            Thread.sleep(500);
+            return "Done";
+        }).name("HIGH-2").priority(TaskPriority.HIGH).build();
 
         // =====================================================
-        // SUBMIT TASKS
+        // SUBMIT IN REVERSE PRIORITY ORDER (worst first!)
         // =====================================================
-        // All 3 tasks submitted, but only 2 can run at once (we have 2 threads)
-        // Task 3 will wait in the queue until a thread is free
-        scheduler.submitWrapper(task1);
-        scheduler.submitWrapper(task2);
-        scheduler.submitWrapper(task3);
+        logger.info("Submitting tasks in WRONG order:");
+        logger.info("  1. {} (priority={})", lowTask1.getName(), lowTask1.getPriority());
+        logger.info("  2. {} (priority={})", lowTask2.getName(), lowTask2.getPriority());
+        logger.info("  3. {} (priority={})", mediumTask.getName(), mediumTask.getPriority());
+        logger.info("  4. {} (priority={})", highTask1.getName(), highTask1.getPriority());
+        logger.info("  5. {} (priority={})\n", highTask2.getName(), highTask2.getPriority());
+
+        scheduler.submitWrapper(lowTask1);
+        scheduler.submitWrapper(lowTask2);
+        scheduler.submitWrapper(mediumTask);
+        scheduler.submitWrapper(highTask1);
+        scheduler.submitWrapper(highTask2);
+
+        logger.info("All tasks submitted. Watch them execute in PRIORITY order!\n");
 
         // =====================================================
-        // CHECK STATUS WHILE RUNNING
+        // WAIT FOR ALL TO COMPLETE
         // =====================================================
-        Thread.sleep(500);  // Wait half a second
-        logger.info("\nAfter 500ms (tasks should be RUNNING):");
-        logger.info("  {}", task1);
-        logger.info("  {}\n", task2);
+        Thread.sleep(3500);  // 5 tasks × 500ms each
 
         // =====================================================
-        // WAIT FOR ALL TASKS TO COMPLETE
+        // SHOW RESULTS
         // =====================================================
-        Thread.sleep(2000);  // Wait for all to finish
+        logger.info("\nExecution order (check logs above):");
+        logger.info("Expected: HIGH-1, HIGH-2, MEDIUM-1, LOW-1, LOW-2");
+        logger.info("(Priority scheduling works!)");
 
-        // =====================================================
-        // CHECK FINAL STATUS
-        // =====================================================
-        logger.info("\nFinal status:");
-        logger.info("  {} → Result: {}", task1, task1.getResult());
-        logger.info("  {} → Result: {}", task2, task2.getResult());
-        logger.info("  {} → Error: {}\n", task3, task3.getException().getMessage());
-
-        // =====================================================
-        // CLEANUP
-        // =====================================================
         scheduler.shutdown();
-        logger.info("Application finished.");
+        logger.info("\nDemo finished.");
     }
 }

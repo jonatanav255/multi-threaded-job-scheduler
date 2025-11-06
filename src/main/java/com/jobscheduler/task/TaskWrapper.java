@@ -12,9 +12,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * Wraps a Task with metadata needed for scheduling and execution. This class is
  * thread-safe for status updates.
  *
+ * Implements Comparable for priority-based scheduling:
+ * - Higher priority tasks come first
+ * - If same priority, earlier creation time comes first
+ *
  * @param <T> the type of result the task produces
  */
-public class TaskWrapper<T> {
+public class TaskWrapper<T> implements Comparable<TaskWrapper<?>> {
 
     private final String id;
     private final String name;
@@ -134,5 +138,32 @@ public class TaskWrapper<T> {
     public String toString() {
         return String.format("Task[id=%s, name=%s, priority=%s, status=%s]",
                 id, name, priority, status.get());
+    }
+
+    /**
+     * Compare tasks for priority ordering.
+     *
+     * Tasks are ordered by:
+     * 1. Priority (HIGH before MEDIUM before LOW)
+     * 2. Creation time (older tasks first if same priority)
+     *
+     * This allows PriorityQueue to schedule high-priority tasks first.
+     */
+    @Override
+    public int compareTo(TaskWrapper<?> other) {
+        // Compare by priority weight (higher weight = higher priority)
+        // We want HIGH priority first, so we reverse the comparison
+        int priorityComparison = Integer.compare(
+            other.priority.getWeight(),  // other first
+            this.priority.getWeight()    // this second
+        );
+
+        if (priorityComparison != 0) {
+            // Different priorities - return priority order
+            return priorityComparison;
+        }
+
+        // Same priority - compare by creation time (earlier first)
+        return this.creationTime.compareTo(other.creationTime);
     }
 }

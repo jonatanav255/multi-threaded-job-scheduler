@@ -5,9 +5,8 @@ import com.jobscheduler.task.TaskWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Simple scheduler with background thread execution.
@@ -30,12 +29,30 @@ public class SimpleScheduler {
      * @param numThreads how many tasks can run at the same time
      */
     public SimpleScheduler(int numThreads) {
-        // Create a fixed thread pool:
-        // - Creates exactly 'numThreads' worker threads
+        // Create a thread pool with PRIORITY QUEUE:
+        // - PriorityBlockingQueue orders tasks by priority
+        // - HIGH priority tasks run before LOW priority
         // - Threads are reused (not created/destroyed per task)
-        // - If all threads are busy, new tasks wait in a queue
-        this.executor = Executors.newFixedThreadPool(numThreads);
-        logger.info("Scheduler ready with {} worker threads", numThreads);
+        // - If all threads are busy, new tasks wait in priority order
+
+        // Thread naming counter
+        AtomicInteger threadCounter = new AtomicInteger(1);
+
+        this.executor = new ThreadPoolExecutor(
+            numThreads,                           // Core pool size
+            numThreads,                           // Max pool size (same = fixed)
+            0L,                                   // Keep-alive time (not used)
+            TimeUnit.MILLISECONDS,
+            new PriorityBlockingQueue<>(),        // Priority queue!
+            r -> {
+                // Custom thread factory for nice thread names
+                Thread thread = new Thread(r);
+                thread.setName("Worker-" + threadCounter.getAndIncrement());
+                return thread;
+            }
+        );
+
+        logger.info("Scheduler ready with {} worker threads (priority-based)", numThreads);
     }
 
     /**
@@ -100,14 +117,38 @@ public class SimpleScheduler {
      * - Result or exception
      * - Start and end times
      *
+     * Tasks are executed in priority order (HIGH before MEDIUM before LOW).
+     *
      * @param wrapper the wrapped task
      * @return the task ID
      */
     public <T> String submitWrapper(TaskWrapper<T> wrapper) {
         logger.info("Submitting: {}", wrapper);
 
+        // Wrap in a PriorityRunnable so the priority queue can order it
+        // The queue uses compareTo() from TaskWrapper to order tasks
+        PriorityRunnable priorityRunnable = new PriorityRunnable(wrapper);
+
         // Submit to thread pool (runs in background)
-        executor.submit(() -> {
+        // The priority queue will order tasks by priority
+        executor.execute(priorityRunnable);
+
+        // Return the task ID so caller can track it
+        return wrapper.getId();
+    }
+
+    /**
+     * Wrapper that makes a TaskWrapper executable and comparable for priority queue.
+     */
+    private class PriorityRunnable implements Runnable, Comparable<PriorityRunnable> {
+        private final TaskWrapper<?> wrapper;
+
+        public PriorityRunnable(TaskWrapper<?> wrapper) {
+            this.wrapper = wrapper;
+        }
+
+        @Override
+        public void run() {
             try {
                 // STEP 1: Mark task as started
                 // Changes status from PENDING to RUNNING
@@ -116,13 +157,15 @@ public class SimpleScheduler {
 
                 // STEP 2: Execute the actual task
                 // This is where the real work happens
-                T result = wrapper.getTask().execute();
+                Object result = wrapper.getTask().execute();
 
                 // STEP 3: Mark as completed successfully
                 // Changes status from RUNNING to COMPLETED
                 // Stores the result
                 // Records end time
-                wrapper.markCompleted(result);
+                @SuppressWarnings("unchecked")
+                TaskWrapper<Object> typedWrapper = (TaskWrapper<Object>) wrapper;
+                typedWrapper.markCompleted(result);
                 logger.info("✓ Completed: {}", wrapper.getName());
 
             } catch (Exception e) {
@@ -133,10 +176,13 @@ public class SimpleScheduler {
                 wrapper.markFailed(e);
                 logger.error("✗ Failed: {} - {}", wrapper.getName(), e.getMessage());
             }
-        });
+        }
 
-        // Return the task ID so caller can track it
-        return wrapper.getId();
+        @Override
+        public int compareTo(PriorityRunnable other) {
+            // Delegate to TaskWrapper's compareTo
+            return this.wrapper.compareTo(other.wrapper);
+        }
     }
 
     /**
